@@ -1,0 +1,15 @@
+{
+  "schema": "hillclimb/v2",
+  "metrics": [
+    { "id": "correct", "label": "Correct", "kind": "binary" },
+    { "id": "right_language", "label": "Right lang", "kind": "binary" },
+    { "id": "difficulty_calibrated", "label": "Difficulty", "kind": "binary" }
+  ],
+  "perf_fields": [
+    { "id": "usage.output_tokens", "label": "Gen out tok" }
+  ],
+  "variants": [
+    { "id": "baseline", "label": "Sonnet 4.6", "description": "claude-sonnet-4-6 — current production model for task=generate" },
+    { "id": "v1", "label": "Haiku 4.5", "description": "claude-haiku-4-5 — ~3x cheaper candidate" }
+  ]
+}

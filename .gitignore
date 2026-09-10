@@ -6,3 +6,8 @@ dist
 .env.*.local
 .DS_Store
 *.log
+.claude/hillclimb/generate-haiku-vs-sonnet/**/traces/
+.claude/hillclimb/generate-haiku-vs-sonnet/report.html
+.claude/hillclimb/generate-haiku-vs-sonnet/state.json
+.claude/hillclimb/generate-haiku-vs-sonnet/trajectory/
+.claude/hillclimb/generate-haiku-vs-sonnet/**/errors.jsonl

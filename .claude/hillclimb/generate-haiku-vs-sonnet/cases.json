@@ -1,0 +1,452 @@
+[
+  {
+    "prompt_id": "case-00",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Calcul numérique et algébrique",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "Tronc Commun",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-01",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Ensembles de nombres",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "Tronc Commun",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-02",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Arithmétique dans N",
+    "lang": "fr",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "french-baseline",
+      "Tronc Commun",
+      "hard"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-03",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Ensembles et applications",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "Tronc Commun",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-04",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "La droite dans le plan",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "Tronc Commun",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-05",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Généralités sur les fonctions",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "1ère Bac",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-06",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Le produit scalaire",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "1ère Bac",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-07",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "La dérivation",
+    "lang": "fr",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "french-baseline",
+      "1ère Bac",
+      "hard"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-08",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Géométrie dans l'espace — droites et plans",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "1ère Bac",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-09",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Les suites numériques",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "1ère Bac",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-10",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Limites et continuité",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "2ème Bac",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-11",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Suites numériques",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "2ème Bac",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-12",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Fonction logarithme népérien",
+    "lang": "fr",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "french-baseline",
+      "2ème Bac",
+      "hard"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-13",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Dérivabilité et étude de fonctions",
+    "lang": "fr",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "french-baseline",
+      "2ème Bac",
+      "easy"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-14",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Fonction exponentielle",
+    "lang": "fr",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "french-baseline",
+      "2ème Bac",
+      "medium"
+    ],
+    "anchor": false
+  },
+  {
+    "prompt_id": "case-15",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Calcul numérique et algébrique",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "Tronc Commun",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-16",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Ensembles de nombres",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "Tronc Commun",
+      "medium"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-17",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Arithmétique dans N",
+    "lang": "ar",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "arabic-drift-risk",
+      "Tronc Commun",
+      "hard"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-18",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "Ensembles et applications",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "Tronc Commun",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-19",
+    "level": "Tronc Commun",
+    "subject": "Mathématiques",
+    "chapter": "La droite dans le plan",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "Tronc Commun",
+      "medium"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-20",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Généralités sur les fonctions",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "1ère Bac",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-21",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Le produit scalaire",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "1ère Bac",
+      "medium"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-22",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "La dérivation",
+    "lang": "ar",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "arabic-drift-risk",
+      "1ère Bac",
+      "hard"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-23",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Géométrie dans l'espace — droites et plans",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "1ère Bac",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-24",
+    "level": "1ère Bac",
+    "subject": "Mathématiques",
+    "chapter": "Les suites numériques",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "1ère Bac",
+      "medium"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-25",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Limites et continuité",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "2ème Bac",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-26",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Suites numériques",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "2ème Bac",
+      "medium"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-27",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Fonction logarithme népérien",
+    "lang": "ar",
+    "band": "hard",
+    "difficultyNum": 9,
+    "tags": [
+      "arabic-drift-risk",
+      "2ème Bac",
+      "hard"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-28",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Dérivabilité et étude de fonctions",
+    "lang": "ar",
+    "band": "easy",
+    "difficultyNum": 2,
+    "tags": [
+      "arabic-drift-risk",
+      "2ème Bac",
+      "easy"
+    ],
+    "anchor": true
+  },
+  {
+    "prompt_id": "case-29",
+    "level": "2ème Bac",
+    "subject": "Mathématiques",
+    "chapter": "Fonction exponentielle",
+    "lang": "ar",
+    "band": "medium",
+    "difficultyNum": 5,
+    "tags": [
+      "arabic-drift-risk",
+      "2ème Bac",
+      "medium"
+    ],
+    "anchor": true
+  }
+]
