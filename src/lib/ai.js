@@ -18,22 +18,41 @@ import { labelFor } from "./curriculum";
 // French identifier, and say explicitly that the content itself — not
 // just the instructions — must be written in Arabic.
 
-export async function generateExercise({ level, subject, chapter, lang, difficultyNum, token }) {
+/** Pure prompt text, no network call — shared with api/cron/batch-replenish.js
+ *  so pre-generated bank items use exactly the same wording as a live call.
+ *  Keep this the single source of truth for the exercise prompt; don't
+ *  let the cron job grow its own copy. */
+export function buildExercisePrompt({ level, subject, chapter, lang, difficultyNum }) {
   const band = diffBand(difficultyNum); // "easy" | "medium" | "hard" — enum literal, not translated
-  const prompt =
-    lang === "ar"
-      ? `أنت أستاذ مغربي تُعِدّ تمارين للباكالوريا.
+  return lang === "ar"
+    ? `أنت أستاذ مغربي تُعِدّ تمارين للباكالوريا.
 ولّد تمرينًا جديدًا واحدًا في مادة "${labelFor(subject, "ar")}" للمستوى "${labelFor(level, "ar")}"، الدرس "${labelFor(chapter, "ar")}".
 مستوى الصعوبة المستهدف: ${difficultyNum}/10 (فئة "${band}"). كيّف التعقيد بدقة مع هذا المستوى.
 مهم: يجب أن يكون نص التمرين (prompt) ونص الحل (solution) مكتوبَين بالكامل باللغة العربية الفصحى، وليس بالفرنسية.
 أجب فقط بصيغة JSON صالحة، بدون أي نص قبلها أو بعدها، بدون markdown، بالصيغة الدقيقة التالية:
 {"prompt":"...","solution":"...","difficulty":"${band}"}`
-      : `Tu es un professeur marocain qui prépare des exercices de baccalauréat.
+    : `Tu es un professeur marocain qui prépare des exercices de baccalauréat.
 Génère UN SEUL nouvel exercice de "${subject}" pour le niveau "${level}", chapitre "${chapter}".
 Niveau de difficulté ciblé : ${difficultyNum}/10 (bande "${band}"). Adapte la complexité précisément à ce niveau.
 Réponds UNIQUEMENT avec un JSON valide, sans texte avant/après, sans markdown, format exact :
 {"prompt":"...","solution":"...","difficulty":"${band}"}`;
-  const text = await askClaude(prompt, 500, token);
+}
+
+/** allowBank defaults false — pass true only for self-practice, never for
+ *  an assignment. See the problem_bank comment in schema.sql: assignments
+ *  must always get a fresh, uniquely-generated exercise, never a pooled
+ *  one another student could also have gotten. */
+export async function generateExercise({ level, subject, chapter, lang, difficultyNum, token, allowBank = false }) {
+  const prompt = buildExercisePrompt({ level, subject, chapter, lang, difficultyNum });
+  const bankLookup = allowBank
+    ? { level, subject, chapter, lang, difficultyBand: diffBand(difficultyNum), itemType: "exercise" }
+    : undefined;
+  // 2500, not 500: a full worked solution for a medium/hard Bac exercise
+  // routinely exceeds 500 output tokens and was getting truncated mid-
+  // solution in production. The Haiku-vs-Sonnet eval showed 1500 still
+  // truncated ~90% of hard-band Sonnet solutions, so 2500. Trades a higher
+  // per-exercise output-token cost (hard band mostly) for finished solutions.
+  const text = await askClaude(prompt, 2500, token, "generate", bankLookup);
   return JSON.parse(text.replace(/```json|```/g, "").trim());
 }
 
@@ -61,17 +80,28 @@ Réponds UNIQUEMENT avec un JSON valide, format exact :
   return JSON.parse(text.replace(/```json|```/g, "").trim());
 }
 
-export async function generateFlashcards({ level, subject, chapter, lang, token }) {
-  const prompt =
-    lang === "ar"
-      ? `ولّد بالضبط 4 بطاقات مراجعة جديدة (سؤال/جواب) في مادة "${labelFor(subject, "ar")}" للمستوى "${labelFor(level, "ar")}"، الدرس "${labelFor(chapter, "ar")}".
+/** Pure prompt text — see the note on buildExercisePrompt above. */
+export function buildFlashcardsPrompt({ level, subject, chapter, lang }) {
+  return lang === "ar"
+    ? `ولّد بالضبط 4 بطاقات مراجعة جديدة (سؤال/جواب) في مادة "${labelFor(subject, "ar")}" للمستوى "${labelFor(level, "ar")}"، الدرس "${labelFor(chapter, "ar")}".
 مهم: يجب أن يكون نص الأسئلة والأجوبة مكتوبًا بالكامل باللغة العربية الفصحى، وليس بالفرنسية.
 أجب فقط بصيغة JSON صالحة، بالصيغة الدقيقة التالية:
 {"items":[{"q":"...","a":"..."}]}`
-      : `Génère exactement 4 nouvelles fiches de révision (question/réponse) de "${subject}" pour le niveau "${level}", chapitre "${chapter}".
+    : `Génère exactement 4 nouvelles fiches de révision (question/réponse) de "${subject}" pour le niveau "${level}", chapitre "${chapter}".
 Réponds UNIQUEMENT avec un JSON valide, format exact :
 {"items":[{"q":"...","a":"..."}]}`;
-  const text = await askClaude(prompt, 900, token);
+}
+
+/** allowBank defaults false, same reasoning as generateExercise above.
+ *  Flashcards have no per-student difficulty, so every bank row for
+ *  item_type='flashcard' is filed under difficulty_band='medium' — a
+ *  fixed bucket rather than a real difficulty measure. */
+export async function generateFlashcards({ level, subject, chapter, lang, token, allowBank = false }) {
+  const prompt = buildFlashcardsPrompt({ level, subject, chapter, lang });
+  const bankLookup = allowBank
+    ? { level, subject, chapter, lang, difficultyBand: "medium", itemType: "flashcard" }
+    : undefined;
+  const text = await askClaude(prompt, 900, token, "generate", bankLookup);
   const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
   return parsed.items || [];
 }

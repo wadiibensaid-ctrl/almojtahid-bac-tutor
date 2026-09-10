@@ -70,6 +70,21 @@ begin
 end;
 $$;
 
+-- security definer functions are PUBLIC-executable by default unless
+-- explicitly revoked — found the hard way while building the problem-bank
+-- feature: this function had no grant restriction at all and takes
+-- p_user_id as a raw, unchecked parameter (no internal auth.uid() match),
+-- so any authenticated user could call it directly with someone ELSE's
+-- user id and exhaust that person's daily cap. This was live and
+-- exploitable from whenever this function was first created — not a
+-- regression introduced by the problem-bank work, just found while
+-- auditing every security definer function for the same class of issue
+-- (see the identical fix on claim_bank_item below). Only the service
+-- role (api/claude.js) should ever call this.
+revoke execute on function increment_usage(uuid) from public;
+revoke execute on function increment_usage(uuid) from authenticated;
+revoke execute on function increment_usage(uuid) from anon;
+
 
 -- ============================================================
 -- Parent follow-up feature: student/parent roles, invite-code
@@ -673,3 +688,186 @@ end;
 $$;
 
 grant execute on function release_assignment_grades(uuid) to authenticated;
+
+
+-- ============================================================
+-- Past national Bac exam papers (épreuves nationales), with correction
+-- keys. Two sources, same table: teacher uploads (source='teacher',
+-- uploaded_by set) and papers pulled from the official Ministry (CNEE)
+-- portal (source='official', uploaded_by null, inserted directly via the
+-- dashboard/service role, not through the app).
+--
+-- Unlike assignments/live_sessions, this content is NOT sensitive — a
+-- past Bac paper is the same PDF any student could already find on public
+-- exam-archive sites, and the official ones literally come from a
+-- government portal. So the storage bucket is public (see below) and the
+-- table's select policy is open to any authenticated user, not scoped to
+-- a class — the value here is having ALL of them in one place, not
+-- restricting who sees which one.
+-- ============================================================
+
+create table if not exists past_papers (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  subject text not null,
+  stream text not null,
+  year int not null,
+  session text not null check (session in ('normale', 'rattrapage')),
+  title text,
+  paper_path text not null,
+  correction_path text,
+  source text not null default 'teacher' check (source in ('official', 'teacher')),
+  uploaded_by uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table past_papers enable row level security;
+
+drop policy if exists "authenticated users view past papers" on past_papers;
+create policy "authenticated users view past papers"
+  on past_papers for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "teachers upload past papers" on past_papers;
+create policy "teachers upload past papers"
+  on past_papers for insert
+  with check (
+    uploaded_by = auth.uid()
+    and exists (select 1 from profiles where id = auth.uid() and role = 'teacher')
+  );
+
+drop policy if exists "teachers manage their own uploaded papers" on past_papers;
+create policy "teachers manage their own uploaded papers"
+  on past_papers for update
+  using (uploaded_by = auth.uid())
+  with check (uploaded_by = auth.uid());
+
+drop policy if exists "teachers delete their own uploaded papers" on past_papers;
+create policy "teachers delete their own uploaded papers"
+  on past_papers for delete
+  using (uploaded_by = auth.uid());
+
+create index if not exists past_papers_filter_idx
+  on past_papers (level, subject, stream, year);
+
+-- Public bucket — see the comment above the table for why. Uploads are
+-- still gated to teachers via the storage.objects policy below; only
+-- reads are unrestricted.
+insert into storage.buckets (id, name, public)
+values ('past-papers', 'past-papers', true)
+on conflict (id) do nothing;
+
+drop policy if exists "teachers upload to past-papers bucket" on storage.objects;
+create policy "teachers upload to past-papers bucket"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'past-papers'
+    and exists (select 1 from profiles where id = auth.uid() and role = 'teacher')
+  );
+
+drop policy if exists "teachers delete their own past-paper files" on storage.objects;
+create policy "teachers delete their own past-paper files"
+  on storage.objects for delete
+  using (bucket_id = 'past-papers' and owner = auth.uid());
+
+
+-- ============================================================
+-- AI cost controls: a pre-generated problem bank for self-practice and
+-- flashcards, replenished off-peak via Anthropic's Batch API (50% off
+-- standard pricing) — see api/cron/batch-replenish.js.
+--
+-- Deliberately NOT used for assignments. The anti-cheat design (each
+-- student's assigned exercise is generated fresh, just for them — see the
+-- comment on assignment_submissions) depends on no two students ever
+-- getting the same exercise for graded work; a shared pool would break
+-- that. Self-practice and flashcards carry no such constraint — they're
+-- personal, ungraded, never compared against a classmate — so serving the
+-- same pooled item to different students (or the same student twice) is
+-- fine there.
+--
+-- Both tables are server-only: RLS is enabled with NO policies for
+-- anon/authenticated, so every access goes through the service role from
+-- api/claude.js or the cron job — nothing here is ever reachable over the
+-- public PostgREST API, by construction rather than by policy.
+-- ============================================================
+
+create table if not exists problem_bank (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  subject text not null,
+  chapter text not null,
+  lang text not null check (lang in ('fr', 'ar')),
+  difficulty_band text not null check (difficulty_band in ('easy', 'medium', 'hard')),
+  item_type text not null check (item_type in ('exercise', 'flashcard')),
+  content jsonb not null,
+  source text not null default 'batch' check (source in ('batch', 'live-fallback')),
+  used_count int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table problem_bank enable row level security;
+
+create index if not exists problem_bank_lookup_idx
+  on problem_bank (level, subject, chapter, lang, item_type, difficulty_band, used_count);
+
+-- Atomically claims the least-used matching item (or the oldest among
+-- ties) and bumps its used_count in the same transaction — `for update
+-- skip locked` means two concurrent claims never grab the same row; the
+-- second one just gets the next-best row instead of blocking or double-
+-- serving. Returns no row (all columns null) when the pool is empty for
+-- that combo, which the caller treats as a cache miss.
+--
+-- security definer functions are executable by PUBLIC by default unless
+-- explicitly revoked — confirmed the hard way: without the three revokes
+-- below, any authenticated user (or anon) could call this directly,
+-- bypassing /api/claude's auth check and the daily rate limit entirely,
+-- and drain the whole bank in a scripted loop. Only the service role
+-- (api/claude.js, api/cron/batch-replenish.js) should ever call this.
+create or replace function claim_bank_item(
+  p_level text, p_subject text, p_chapter text,
+  p_lang text, p_difficulty_band text, p_item_type text
+)
+returns problem_bank
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row problem_bank;
+begin
+  select * into v_row from problem_bank
+  where level = p_level and subject = p_subject and chapter = p_chapter
+    and lang = p_lang and difficulty_band = p_difficulty_band and item_type = p_item_type
+  order by used_count asc, created_at asc
+  limit 1
+  for update skip locked;
+
+  if v_row.id is not null then
+    update problem_bank set used_count = used_count + 1 where id = v_row.id
+    returning * into v_row;
+  end if;
+
+  return v_row;
+end;
+$$;
+
+revoke execute on function claim_bank_item(text, text, text, text, text, text) from public;
+revoke execute on function claim_bank_item(text, text, text, text, text, text) from authenticated;
+revoke execute on function claim_bank_item(text, text, text, text, text, text) from anon;
+
+-- Tracks each Anthropic batch submitted by the replenish cron between its
+-- "submit" and "collect" phases (both run in the same daily invocation,
+-- but a batch can still be mid-processing when the next day's run starts —
+-- see the job for why status stays 'submitted' across runs until then).
+-- requests_meta maps each request's custom_id to the (level, subject,
+-- chapter, lang, difficulty_band, item_type) it was generated for, since
+-- batch results come back keyed only by custom_id, in no particular order.
+create table if not exists batch_jobs (
+  id text primary key,
+  status text not null default 'submitted' check (status in ('submitted', 'completed', 'failed')),
+  requests_meta jsonb not null,
+  submitted_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
+alter table batch_jobs enable row level security;

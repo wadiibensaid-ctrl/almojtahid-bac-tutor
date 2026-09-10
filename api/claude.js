@@ -38,9 +38,40 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Invalid session" });
   }
 
-  // 1b. Enforce the daily cap via an atomic Postgres increment (see
+  // 2. Validate input.
+  const { prompt, maxTokens, task, bankLookup } = req.body || {};
+  if (!prompt || typeof prompt !== "string") {
+    return res.status(400).json({ error: "Missing or invalid prompt" });
+  }
+  const model = MODELS[task] || MODELS.generate;
+
+  // 1b. Bank check — self-practice/flashcards only (bankLookup is only ever
+  // sent for those, never assignments; see the comment on problem_bank in
+  // schema.sql). A hit costs nothing and doesn't count against the daily
+  // cap, which is the whole point: it's pre-paid, off-peak, half-price
+  // content, so serving it for free here is a real saving, not just a
+  // shortcut. A miss falls through to the normal metered path below.
+  if (bankLookup && task !== "grade") {
+    const { data: bankRow, error: bankError } = await supabaseAdmin.rpc("claim_bank_item", {
+      p_level: bankLookup.level,
+      p_subject: bankLookup.subject,
+      p_chapter: bankLookup.chapter,
+      p_lang: bankLookup.lang,
+      p_difficulty_band: bankLookup.difficultyBand,
+      p_item_type: bankLookup.itemType,
+    });
+    if (bankError) {
+      console.warn("[claude] bank lookup error, falling back to live:", bankError.message);
+    } else if (bankRow?.id) {
+      return res.status(200).json({ text: JSON.stringify(bankRow.content), model: "problem-bank", bank: true });
+    }
+  }
+
+  // 1c. Enforce the daily cap via an atomic Postgres increment (see
   // increment_usage() in supabase/schema.sql) — a JS read-then-write would
-  // let concurrent requests from the same user race past the cap.
+  // let concurrent requests from the same user race past the cap. Only
+  // reached on a bank miss (or no bankLookup at all), so a bank hit above
+  // never touches the cap.
   const { data: newCount, error: usageError } = await supabaseAdmin.rpc("increment_usage", {
     p_user_id: userData.user.id,
   });
@@ -54,13 +85,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // 2. Validate input.
-  const { prompt, maxTokens, task } = req.body || {};
-  if (!prompt || typeof prompt !== "string") {
-    return res.status(400).json({ error: "Missing or invalid prompt" });
-  }
-  const model = MODELS[task] || MODELS.generate;
-
   // 3. Forward to Anthropic using the real key, which lives only here.
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -72,7 +96,10 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model,
-        max_tokens: Math.min(Number(maxTokens) || 800, 1500),
+        // Ceiling 3000 so generateExercise's 2500 request has headroom
+        // (raised from 1500 after the eval showed hard exercises still
+        // truncating); grading still asks for 500 and is unaffected.
+        max_tokens: Math.min(Number(maxTokens) || 800, 3000),
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -91,6 +118,27 @@ export default async function handler(req, res) {
     console.log(
       `[claude] task=${task || "generate"} model=${data.model} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} promptStart=${JSON.stringify(prompt.slice(0, 40))}`
     );
+
+    // Opportunistic write-back: this was a bank miss, so stash the live
+    // result for next time. Best-effort — a parse failure or write error
+    // here must never fail the actual response the student is waiting on.
+    if (bankLookup) {
+      try {
+        const content = JSON.parse(text.replace(/```json|```/g, "").trim());
+        await supabaseAdmin.from("problem_bank").insert({
+          level: bankLookup.level,
+          subject: bankLookup.subject,
+          chapter: bankLookup.chapter,
+          lang: bankLookup.lang,
+          difficulty_band: bankLookup.difficultyBand,
+          item_type: bankLookup.itemType,
+          content,
+          source: "live-fallback",
+        });
+      } catch (e) {
+        console.warn("[claude] bank write-back skipped:", e.message);
+      }
+    }
 
     return res.status(200).json({ text, model: data.model });
   } catch (e) {

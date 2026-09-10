@@ -13,7 +13,7 @@ import TeacherDashboard from "./TeacherDashboard";
 import {
   joinClassByCode, getMyClassesAsStudent, getAssignmentsForStudent,
   getMySubmission, createSubmissionRow, submitAssignmentAnswer,
-  getActiveLiveSession,
+  getActiveLiveSession, getPastPapers,
 } from "./lib/teacher";
 import { JITSI_DOMAIN, loadJitsiScript, STUDENT_TOOLBAR_BUTTONS } from "./lib/jitsi";
 
@@ -23,7 +23,7 @@ import { JITSI_DOMAIN, loadJitsiScript, STUDENT_TOOLBAR_BUTTONS } from "./lib/ji
    student/parent roles with a read-only aggregate parent dashboard.
    ========================================================================= */
 
-import { LEVELS, SUBJECTS, CURRICULUM, SEED_CONTENT, SEED_CONTENT_AR, labelFor } from "./lib/curriculum";
+import { LEVELS, SUBJECTS, STREAMS, CURRICULUM, SEED_CONTENT, SEED_CONTENT_AR, labelFor } from "./lib/curriculum";
 
 
 /* ========================= Root routing (role-aware) ========================= */
@@ -142,6 +142,9 @@ function PlatformShell({ profile }) {
             <button className="sidebar-subject" onClick={() => { setChapterTitle(null); setTab("assignments"); setSidebarOpen(false); }}>
               <span>{t.tabAssignments}</span>
             </button>
+            <button className="sidebar-subject" onClick={() => { setChapterTitle(null); setTab("pastPapers"); setSidebarOpen(false); }}>
+              <span>{t.pastPapersTab}</span>
+            </button>
             <button className="sidebar-subject" onClick={() => { setChapterTitle(null); setTab("account"); setSidebarOpen(false); }}>
               <span>{t.tabAccount}</span>
             </button>
@@ -149,7 +152,7 @@ function PlatformShell({ profile }) {
         </div>
 
         <div className="dashboard-content">
-          {!chapter && tab !== "account" && tab !== "assignments" && (
+          {!chapter && tab !== "account" && tab !== "assignments" && tab !== "pastPapers" && (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#9c9184" }}>
               <Star8 size={40} color="var(--line)" style={{ margin: "0 auto 12px" }} />
               <div>{t.pickChapter}</div>
@@ -158,6 +161,7 @@ function PlatformShell({ profile }) {
 
           {!chapter && tab === "account" && <AccountTab t={t} profile={profile} />}
           {!chapter && tab === "assignments" && <AssignmentsTab t={t} lang={lang} />}
+          {!chapter && tab === "pastPapers" && <PastPapersView t={t} lang={lang} />}
 
           {chapter && (
             <>
@@ -254,7 +258,7 @@ function PracticeTab({ t, lang, level, subject, chapter }) {
   const loadNext = async () => {
     setLoadingEx(true); setError(false); setResult(null); setAnswer("");
     try {
-      const ex = await generateExercise({ level, subject, chapter, lang, difficultyNum: progress?.difficulty || 3, token });
+      const ex = await generateExercise({ level, subject, chapter, lang, difficultyNum: progress?.difficulty || 3, token, allowBank: true });
       setCurrent(ex);
     } catch { setError(true); }
     setLoadingEx(false);
@@ -380,7 +384,7 @@ function FlashcardsTab({ t, lang, level, subject, chapter, seed }) {
   const genMore = async () => {
     setGenLoading(true); setError(false);
     try {
-      const items = await generateFlashcards({ level, subject, chapter, lang, token });
+      const items = await generateFlashcards({ level, subject, chapter, lang, token, allowBank: true });
       const newCards = items.map((it) => ({ id: uid(), q: it.q, a: it.a }));
       const newDeck = [...deck, ...newCards];
       setDeck(newDeck);
@@ -560,6 +564,71 @@ function StudentLiveSessions({ t, classes }) {
           <button className="btn solid" onClick={() => setJoined({ classId: c.id, session: liveByClass[c.id] })}>{t.joinLiveSession}</button>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Read-only for students — same shared library teachers upload to, no
+ *  class-scoping (see get_past_papers()/past_papers RLS in schema.sql). */
+function PastPapersView({ t, lang }) {
+  const [papers, setPapers] = useState(null);
+  const [filterLevel, setFilterLevel] = useState("");
+  const [filterSubject, setFilterSubject] = useState("");
+  const [filterStream, setFilterStream] = useState("");
+
+  const load = useCallback(async () => {
+    const list = await getPastPapers({
+      level: filterLevel || undefined,
+      subject: filterSubject || undefined,
+      stream: filterStream || undefined,
+    });
+    setPapers(list);
+  }, [filterLevel, filterSubject, filterStream]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div>
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 700, color: "var(--ink)", margin: "0 0 22px" }}>{t.pastPapersTab}</h1>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+        <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
+          <option value="">{t.allLevels}</option>
+          {LEVELS.map((l) => <option key={l} value={l}>{labelFor(l, lang)}</option>)}
+        </select>
+        <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
+          <option value="">{t.allSubjects}</option>
+          {SUBJECTS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
+        </select>
+        <select value={filterStream} onChange={(e) => setFilterStream(e.target.value)}>
+          <option value="">{t.allStreams}</option>
+          {STREAMS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
+        </select>
+      </div>
+
+      {papers === null ? (
+        <div style={{ color: "#9c9184" }}>{t.loadingLabel}</div>
+      ) : papers.length === 0 ? (
+        <div style={{ color: "#9c9184" }}>{t.noPastPapers}</div>
+      ) : (
+        papers.map((p) => (
+          <div key={p.id} className="exercise-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>
+                {labelFor(p.subject, lang)} — {labelFor(p.stream, lang)} — {p.year} ({p.session === "normale" ? t.sessionNormale : t.sessionRattrapage})
+              </div>
+              <div style={{ fontSize: 12.5, color: "#7a7266" }}>
+                {labelFor(p.level, lang)}{p.title ? ` · ${p.title}` : ""}
+                {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <a className="btn" href={p.paperUrl} target="_blank" rel="noreferrer">{t.viewPaper}</a>
+              {p.correctionUrl && <a className="btn" href={p.correctionUrl} target="_blank" rel="noreferrer">{t.viewCorrection}</a>}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }

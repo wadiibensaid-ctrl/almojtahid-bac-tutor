@@ -1,6 +1,12 @@
 export const LEVELS = ["Tronc Commun", "1ère Bac", "2ème Bac"];
 export const SUBJECTS = ["Mathématiques", "Physique-Chimie", "SVT"];
 
+// Bac streams for past national exam papers (src/lib/teacher.js
+// past-papers functions) — separate from LEVELS/SUBJECTS above since a
+// past paper is tagged by the actual national exam stream it was set for,
+// not by our own curriculum structure.
+export const STREAMS = ["Sciences Expérimentales", "Sciences Mathématiques"];
+
 // Arabic display labels for levels/subjects/chapter titles. The French
 // strings above remain the canonical identifiers everywhere (CURRICULUM
 // keys, kv_store keys, AI prompt params, SEED_CONTENT_AR keys) — these
@@ -15,6 +21,11 @@ const SUBJECTS_AR = {
   "Mathématiques": "الرياضيات",
   "Physique-Chimie": "الفيزياء والكيمياء",
   "SVT": "علوم الحياة والأرض",
+};
+
+const STREAMS_AR = {
+  "Sciences Expérimentales": "العلوم التجريبية",
+  "Sciences Mathématiques": "العلوم الرياضية",
 };
 
 const CHAPTER_TITLES_AR = {
@@ -98,7 +109,7 @@ const CHAPTER_TITLES_AR = {
 // blank, even for an untranslated title).
 export function labelFor(text, lang) {
   if (lang !== "ar" || !text) return text;
-  return LEVELS_AR[text] ?? SUBJECTS_AR[text] ?? CHAPTER_TITLES_AR[text] ?? text;
+  return LEVELS_AR[text] ?? SUBJECTS_AR[text] ?? STREAMS_AR[text] ?? CHAPTER_TITLES_AR[text] ?? text;
 }
 
 export const CURRICULUM = {

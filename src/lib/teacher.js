@@ -217,3 +217,71 @@ export async function getActiveLiveSession(classId) {
   if (error) throw error;
   return data;
 }
+
+/* ---- Past national exam papers — a shared library, not class-scoped.
+ * Content is public (same PDFs available on any public exam-archive
+ * site), so unlike everything else in this file there's no ownership
+ * filtering on read — every authenticated user sees every paper. */
+
+function pastPaperPublicUrl(path) {
+  if (!path) return null;
+  return supabase.storage.from("past-papers").getPublicUrl(path).data.publicUrl;
+}
+
+/** Teacher side: uploads the paper (and optional correction key) to
+ *  storage, then records it. Random filenames avoid collisions between
+ *  teachers uploading similarly-named files. */
+export async function uploadPastPaper({ teacherId, level, subject, stream, year, session, title, paperFile, correctionFile }) {
+  const base = `${level}/${subject}/${stream}/${year}-${session}-${crypto.randomUUID()}`;
+  const paperPath = `${base}.pdf`;
+  const { error: paperErr } = await supabase.storage.from("past-papers").upload(paperPath, paperFile);
+  if (paperErr) throw paperErr;
+
+  let correctionPath = null;
+  if (correctionFile) {
+    correctionPath = `${base}-correction.pdf`;
+    const { error: corrErr } = await supabase.storage.from("past-papers").upload(correctionPath, correctionFile);
+    if (corrErr) throw corrErr;
+  }
+
+  const { data, error } = await supabase
+    .from("past_papers")
+    .insert({
+      level, subject, stream, year: Number(year), session,
+      title: title || null,
+      paper_path: paperPath,
+      correction_path: correctionPath,
+      source: "teacher",
+      uploaded_by: teacherId,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Optional level/subject/stream filters; omit any to see everything. */
+export async function getPastPapers({ level, subject, stream } = {}) {
+  let query = supabase.from("past_papers").select("*").order("year", { ascending: false });
+  if (level) query = query.eq("level", level);
+  if (subject) query = query.eq("subject", subject);
+  if (stream) query = query.eq("stream", stream);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []).map((r) => ({
+    ...r,
+    paperUrl: pastPaperPublicUrl(r.paper_path),
+    correctionUrl: pastPaperPublicUrl(r.correction_path),
+  }));
+}
+
+/** Teacher side: removes both the storage files and the row. RLS already
+ *  restricts the row delete to the uploading teacher; the storage remove
+ *  is likewise scoped by the bucket's own owner-based policy. */
+export async function deletePastPaper(paperId, paperPath, correctionPath) {
+  const paths = [paperPath, correctionPath].filter(Boolean);
+  const { error: storageErr } = await supabase.storage.from("past-papers").remove(paths);
+  if (storageErr) throw storageErr;
+  const { error } = await supabase.from("past_papers").delete().eq("id", paperId);
+  if (error) throw error;
+}

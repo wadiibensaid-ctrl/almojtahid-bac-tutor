@@ -2,11 +2,12 @@ import React, { useState, useEffect, useContext, useCallback, useRef } from "rea
 import { AuthContext } from "./AuthContext";
 import { Frame, HeaderBar, Star8 } from "./ui/Frame";
 import { T } from "./lib/i18n";
-import { LEVELS, SUBJECTS, CURRICULUM, labelFor } from "./lib/curriculum";
+import { LEVELS, SUBJECTS, STREAMS, CURRICULUM, labelFor } from "./lib/curriculum";
 import {
   createClass, getMyClasses, getClassMembers,
   createAssignment, getAssignmentsForTeacher, getSubmissionsForAssignment, releaseAssignmentGrades,
   startLiveSession, endLiveSession, getLiveSessionsForClass, getActiveLiveSession,
+  uploadPastPaper, getPastPapers, deletePastPaper,
 } from "./lib/teacher";
 import { JITSI_DOMAIN, loadJitsiScript } from "./lib/jitsi";
 
@@ -18,6 +19,7 @@ export default function TeacherDashboard({ profile }) {
   const [newClassName, setNewClassName] = useState("");
   const [creatingClass, setCreatingClass] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [view, setView] = useState("classes"); // "classes" | "pastPapers"
   const t = T[lang];
 
   const refreshClasses = useCallback(async () => {
@@ -65,7 +67,7 @@ export default function TeacherDashboard({ profile }) {
             <div style={{ color: "#9c9184", fontSize: 13 }}>{t.loadingLabel}</div>
           ) : (
             classes.map((c) => (
-              <button key={c.id} className={`sidebar-chapter ${selectedClassId === c.id ? "active" : ""}`} onClick={() => { setSelectedClassId(c.id); setSidebarOpen(false); }}>
+              <button key={c.id} className={`sidebar-chapter ${view === "classes" && selectedClassId === c.id ? "active" : ""}`} onClick={() => { setSelectedClassId(c.id); setView("classes"); setSidebarOpen(false); }}>
                 {c.name}
               </button>
             ))
@@ -77,10 +79,17 @@ export default function TeacherDashboard({ profile }) {
               {creatingClass ? t.loadingLabel : t.createClassBtn}
             </button>
           </form>
+          <div style={{ marginTop: 18, borderTop: "1.5px solid var(--line)", paddingTop: 10 }}>
+            <button className="sidebar-subject" onClick={() => { setView("pastPapers"); setSidebarOpen(false); }}>
+              <span>{t.pastPapersTab}</span>
+            </button>
+          </div>
         </div>
 
         <div className="dashboard-content">
-          {!selectedClass ? (
+          {view === "pastPapers" ? (
+            <PastPapersTab t={t} lang={lang} teacherId={userId} />
+          ) : !selectedClass ? (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#9c9184" }}>
               <Star8 size={40} color="var(--line)" style={{ margin: "0 auto 12px" }} />
               <div>{t.selectClassPrompt}</div>
@@ -91,6 +100,153 @@ export default function TeacherDashboard({ profile }) {
         </div>
       </div>
     </Frame>
+  );
+}
+
+/** Not class-scoped — every teacher and student sees the same shared
+ *  library of past papers, official or teacher-uploaded alike. */
+function PastPapersTab({ t, lang, teacherId }) {
+  const [papers, setPapers] = useState(null);
+  const [filterLevel, setFilterLevel] = useState("");
+  const [filterSubject, setFilterSubject] = useState("");
+  const [filterStream, setFilterStream] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const load = useCallback(async () => {
+    const list = await getPastPapers({
+      level: filterLevel || undefined,
+      subject: filterSubject || undefined,
+      stream: filterStream || undefined,
+    });
+    setPapers(list);
+  }, [filterLevel, filterSubject, filterStream]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const remove = async (paper) => {
+    await deletePastPaper(paper.id, paper.paper_path, paper.correction_path);
+    load();
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{t.pastPapersTab}</h1>
+        <button className="btn solid" onClick={() => setShowForm(!showForm)}>{t.uploadPastPaper}</button>
+      </div>
+
+      {showForm && (
+        <PastPaperForm t={t} lang={lang} teacherId={teacherId} onCreated={() => { setShowForm(false); load(); }} />
+      )}
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+        <select value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
+          <option value="">{t.allLevels}</option>
+          {LEVELS.map((l) => <option key={l} value={l}>{labelFor(l, lang)}</option>)}
+        </select>
+        <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
+          <option value="">{t.allSubjects}</option>
+          {SUBJECTS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
+        </select>
+        <select value={filterStream} onChange={(e) => setFilterStream(e.target.value)}>
+          <option value="">{t.allStreams}</option>
+          {STREAMS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
+        </select>
+      </div>
+
+      {papers === null ? (
+        <div style={{ color: "#9c9184" }}>{t.loadingLabel}</div>
+      ) : papers.length === 0 ? (
+        <div style={{ color: "#9c9184" }}>{t.noPastPapers}</div>
+      ) : (
+        papers.map((p) => (
+          <div key={p.id} className="exercise-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontWeight: 700 }}>
+                {labelFor(p.subject, lang)} — {labelFor(p.stream, lang)} — {p.year} ({p.session === "normale" ? t.sessionNormale : t.sessionRattrapage})
+              </div>
+              <div style={{ fontSize: 12.5, color: "#7a7266" }}>
+                {labelFor(p.level, lang)}{p.title ? ` · ${p.title}` : ""}
+                {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <a className="btn" href={p.paperUrl} target="_blank" rel="noreferrer">{t.viewPaper}</a>
+              {p.correctionUrl && <a className="btn" href={p.correctionUrl} target="_blank" rel="noreferrer">{t.viewCorrection}</a>}
+              {p.uploaded_by === teacherId && (
+                <button className="btn" style={{ borderColor: "var(--terracotta)", color: "var(--terracotta)" }} onClick={() => remove(p)}>{t.deletePaper}</button>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function PastPaperForm({ t, lang, teacherId, onCreated }) {
+  const [level, setLevel] = useState(LEVELS[LEVELS.length - 1]);
+  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [stream, setStream] = useState(STREAMS[0]);
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [session, setSession] = useState("normale");
+  const [title, setTitle] = useState("");
+  const [paperFile, setPaperFile] = useState(null);
+  const [correctionFile, setCorrectionFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!paperFile) return;
+    setSaving(true); setError(false);
+    try {
+      await uploadPastPaper({ teacherId, level, subject, stream, year, session, title: title.trim(), paperFile, correctionFile });
+      onCreated();
+    } catch {
+      setError(true);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <form onSubmit={submit} className="exercise-card" style={{ marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.level}</label>
+          <select value={level} onChange={(e) => setLevel(e.target.value)}>{LEVELS.map((l) => <option key={l} value={l}>{labelFor(l, lang)}</option>)}</select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.subject}</label>
+          <select value={subject} onChange={(e) => setSubject(e.target.value)}>{SUBJECTS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}</select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.streamLabel}</label>
+          <select value={stream} onChange={(e) => setStream(e.target.value)}>{STREAMS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}</select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.yearLabel}</label>
+          <input type="number" value={year} onChange={(e) => setYear(e.target.value)} min="2000" max="2100" />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.sessionLabel}</label>
+          <select value={session} onChange={(e) => setSession(e.target.value)}>
+            <option value="normale">{t.sessionNormale}</option>
+            <option value="rattrapage">{t.sessionRattrapage}</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.titleOptional}</label>
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t.titlePlaceholder} />
+        </div>
+      </div>
+      <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.paperFileLabel}</label>
+      <input type="file" accept="application/pdf" onChange={(e) => setPaperFile(e.target.files?.[0] || null)} style={{ marginBottom: 12 }} />
+      <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.correctionFileLabel}</label>
+      <input type="file" accept="application/pdf" onChange={(e) => setCorrectionFile(e.target.files?.[0] || null)} style={{ marginBottom: 16 }} />
+      <button type="submit" className="btn solid" disabled={saving || !paperFile}>{saving ? t.loadingLabel : t.uploadBtn}</button>
+      {error && <div style={{ color: "var(--terracotta)", fontSize: 13, marginTop: 10 }}>{t.errorGen}</div>}
+    </form>
   );
 }
 
