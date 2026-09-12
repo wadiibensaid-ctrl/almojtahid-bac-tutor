@@ -231,7 +231,7 @@ function pastPaperPublicUrl(path) {
 /** Teacher side: uploads the paper (and optional correction key) to
  *  storage, then records it. Random filenames avoid collisions between
  *  teachers uploading similarly-named files. */
-export async function uploadPastPaper({ teacherId, level, subject, stream, year, session, title, paperFile, correctionFile }) {
+export async function uploadPastPaper({ teacherId, level, subject, stream, year, session, lang, title, paperFile, correctionFile }) {
   const base = `${level}/${subject}/${stream}/${year}-${session}-${crypto.randomUUID()}`;
   const paperPath = `${base}.pdf`;
   const { error: paperErr } = await supabase.storage.from("past-papers").upload(paperPath, paperFile);
@@ -248,6 +248,7 @@ export async function uploadPastPaper({ teacherId, level, subject, stream, year,
     .from("past_papers")
     .insert({
       level, subject, stream, year: Number(year), session,
+      lang: lang || "fr",
       title: title || null,
       paper_path: paperPath,
       correction_path: correctionPath,
@@ -260,12 +261,13 @@ export async function uploadPastPaper({ teacherId, level, subject, stream, year,
   return data;
 }
 
-/** Optional level/subject/stream filters; omit any to see everything. */
-export async function getPastPapers({ level, subject, stream } = {}) {
+/** Optional level/subject/stream/lang filters; omit any to see everything. */
+export async function getPastPapers({ level, subject, stream, lang } = {}) {
   let query = supabase.from("past_papers").select("*").order("year", { ascending: false });
   if (level) query = query.eq("level", level);
   if (subject) query = query.eq("subject", subject);
   if (stream) query = query.eq("stream", stream);
+  if (lang) query = query.eq("lang", lang);
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((r) => ({

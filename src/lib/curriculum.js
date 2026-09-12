@@ -5,7 +5,7 @@ export const SUBJECTS = ["Mathématiques", "Physique-Chimie", "SVT"];
 // past-papers functions) — separate from LEVELS/SUBJECTS above since a
 // past paper is tagged by the actual national exam stream it was set for,
 // not by our own curriculum structure.
-export const STREAMS = ["Sciences Expérimentales", "Sciences Mathématiques"];
+export const STREAMS = ["Sciences Expérimentales", "Sciences Mathématiques", "Sciences Économiques"];
 
 // Arabic display labels for levels/subjects/chapter titles. The French
 // strings above remain the canonical identifiers everywhere (CURRICULUM
@@ -26,6 +26,7 @@ const SUBJECTS_AR = {
 const STREAMS_AR = {
   "Sciences Expérimentales": "العلوم التجريبية",
   "Sciences Mathématiques": "العلوم الرياضية",
+  "Sciences Économiques": "العلوم الاقتصادية",
 };
 
 const CHAPTER_TITLES_AR = {

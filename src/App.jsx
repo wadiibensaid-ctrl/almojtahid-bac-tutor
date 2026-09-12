@@ -575,15 +575,17 @@ function PastPapersView({ t, lang }) {
   const [filterLevel, setFilterLevel] = useState("");
   const [filterSubject, setFilterSubject] = useState("");
   const [filterStream, setFilterStream] = useState("");
+  const [filterPaperLang, setFilterPaperLang] = useState("");
 
   const load = useCallback(async () => {
     const list = await getPastPapers({
       level: filterLevel || undefined,
       subject: filterSubject || undefined,
       stream: filterStream || undefined,
+      lang: filterPaperLang || undefined,
     });
     setPapers(list);
-  }, [filterLevel, filterSubject, filterStream]);
+  }, [filterLevel, filterSubject, filterStream, filterPaperLang]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -604,6 +606,11 @@ function PastPapersView({ t, lang }) {
           <option value="">{t.allStreams}</option>
           {STREAMS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
         </select>
+        <select value={filterPaperLang} onChange={(e) => setFilterPaperLang(e.target.value)}>
+          <option value="">{t.allPaperLangs}</option>
+          <option value="fr">{t.paperLangFr}</option>
+          <option value="ar">{t.paperLangAr}</option>
+        </select>
       </div>
 
       {papers === null ? (
@@ -618,7 +625,7 @@ function PastPapersView({ t, lang }) {
                 {labelFor(p.subject, lang)} — {labelFor(p.stream, lang)} — {p.year} ({p.session === "normale" ? t.sessionNormale : t.sessionRattrapage})
               </div>
               <div style={{ fontSize: 12.5, color: "#7a7266" }}>
-                {labelFor(p.level, lang)}{p.title ? ` · ${p.title}` : ""}
+                {labelFor(p.level, lang)} · {p.lang === "ar" ? t.paperLangAr : t.paperLangFr}{p.title ? ` · ${p.title}` : ""}
                 {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
               </div>
             </div>

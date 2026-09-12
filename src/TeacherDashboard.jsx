@@ -110,6 +110,7 @@ function PastPapersTab({ t, lang, teacherId }) {
   const [filterLevel, setFilterLevel] = useState("");
   const [filterSubject, setFilterSubject] = useState("");
   const [filterStream, setFilterStream] = useState("");
+  const [filterPaperLang, setFilterPaperLang] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(async () => {
@@ -117,9 +118,10 @@ function PastPapersTab({ t, lang, teacherId }) {
       level: filterLevel || undefined,
       subject: filterSubject || undefined,
       stream: filterStream || undefined,
+      lang: filterPaperLang || undefined,
     });
     setPapers(list);
-  }, [filterLevel, filterSubject, filterStream]);
+  }, [filterLevel, filterSubject, filterStream, filterPaperLang]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -152,6 +154,11 @@ function PastPapersTab({ t, lang, teacherId }) {
           <option value="">{t.allStreams}</option>
           {STREAMS.map((s) => <option key={s} value={s}>{labelFor(s, lang)}</option>)}
         </select>
+        <select value={filterPaperLang} onChange={(e) => setFilterPaperLang(e.target.value)}>
+          <option value="">{t.allPaperLangs}</option>
+          <option value="fr">{t.paperLangFr}</option>
+          <option value="ar">{t.paperLangAr}</option>
+        </select>
       </div>
 
       {papers === null ? (
@@ -166,7 +173,7 @@ function PastPapersTab({ t, lang, teacherId }) {
                 {labelFor(p.subject, lang)} — {labelFor(p.stream, lang)} — {p.year} ({p.session === "normale" ? t.sessionNormale : t.sessionRattrapage})
               </div>
               <div style={{ fontSize: 12.5, color: "#7a7266" }}>
-                {labelFor(p.level, lang)}{p.title ? ` · ${p.title}` : ""}
+                {labelFor(p.level, lang)} · {p.lang === "ar" ? t.paperLangAr : t.paperLangFr}{p.title ? ` · ${p.title}` : ""}
                 {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
               </div>
             </div>
@@ -190,6 +197,7 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
   const [stream, setStream] = useState(STREAMS[0]);
   const [year, setYear] = useState(new Date().getFullYear());
   const [session, setSession] = useState("normale");
+  const [paperLang, setPaperLang] = useState("fr");
   const [title, setTitle] = useState("");
   const [paperFile, setPaperFile] = useState(null);
   const [correctionFile, setCorrectionFile] = useState(null);
@@ -201,7 +209,7 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
     if (!paperFile) return;
     setSaving(true); setError(false);
     try {
-      await uploadPastPaper({ teacherId, level, subject, stream, year, session, title: title.trim(), paperFile, correctionFile });
+      await uploadPastPaper({ teacherId, level, subject, stream, year, session, lang: paperLang, title: title.trim(), paperFile, correctionFile });
       onCreated();
     } catch {
       setError(true);
@@ -233,6 +241,13 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
           <select value={session} onChange={(e) => setSession(e.target.value)}>
             <option value="normale">{t.sessionNormale}</option>
             <option value="rattrapage">{t.sessionRattrapage}</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.paperLangLabel}</label>
+          <select value={paperLang} onChange={(e) => setPaperLang(e.target.value)}>
+            <option value="fr">{t.paperLangFr}</option>
+            <option value="ar">{t.paperLangAr}</option>
           </select>
         </div>
         <div>

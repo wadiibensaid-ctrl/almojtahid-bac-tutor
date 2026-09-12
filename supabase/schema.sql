@@ -721,6 +721,8 @@ create table if not exists past_papers (
   created_at timestamptz not null default now()
 );
 
+alter table past_papers add column if not exists lang text not null default 'fr' check (lang in ('fr', 'ar'));
+
 alter table past_papers enable row level security;
 
 drop policy if exists "authenticated users view past papers" on past_papers;
@@ -747,8 +749,9 @@ create policy "teachers delete their own uploaded papers"
   on past_papers for delete
   using (uploaded_by = auth.uid());
 
+drop index if exists past_papers_filter_idx;
 create index if not exists past_papers_filter_idx
-  on past_papers (level, subject, stream, year);
+  on past_papers (level, subject, stream, year, lang);
 
 -- Public bucket — see the comment above the table for why. Uploads are
 -- still gated to teachers via the storage.objects policy below; only
@@ -765,10 +768,23 @@ create policy "teachers upload to past-papers bucket"
     and exists (select 1 from profiles where id = auth.uid() and role = 'teacher')
   );
 
+-- Ownership check is owner_id (text), not the legacy owner (uuid) column —
+-- current Supabase Storage populates owner_id and leaves owner null, so
+-- `owner = auth.uid()` silently never matches.
 drop policy if exists "teachers delete their own past-paper files" on storage.objects;
 create policy "teachers delete their own past-paper files"
   on storage.objects for delete
-  using (bucket_id = 'past-papers' and owner = auth.uid());
+  using (bucket_id = 'past-papers' and owner_id = auth.uid()::text);
+
+-- Without this, re-uploading to an existing path (an x-upsert, or the
+-- Storage client replacing a file) fails: upsert takes the UPDATE path and
+-- there's no UPDATE policy to satisfy. Scoped to the file's owner, same as
+-- delete — a teacher can replace their own upload, not someone else's.
+drop policy if exists "teachers update their own past-paper files" on storage.objects;
+create policy "teachers update their own past-paper files"
+  on storage.objects for update
+  using (bucket_id = 'past-papers' and owner_id = auth.uid()::text)
+  with check (bucket_id = 'past-papers' and owner_id = auth.uid()::text);
 
 
 -- ============================================================
