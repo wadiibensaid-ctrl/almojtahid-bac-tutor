@@ -768,6 +768,18 @@ create policy "teachers upload to past-papers bucket"
     and exists (select 1 from profiles where id = auth.uid() and role = 'teacher')
   );
 
+-- The bucket being public only bypasses RLS for the direct
+-- /object/public/... read endpoint. Any authenticated operation (LIST,
+-- and the implicit row-visibility check inside UPDATE/DELETE's `using`
+-- clause) still needs a real SELECT policy to see the row at all —
+-- without this, delete/upsert-replace fail with a bare "Access denied"
+-- no matter what owner_id is set to, which is what made that bug so
+-- confusing to chase earlier.
+drop policy if exists "authenticated users list past-paper files" on storage.objects;
+create policy "authenticated users list past-paper files"
+  on storage.objects for select
+  using (bucket_id = 'past-papers' and auth.role() = 'authenticated');
+
 -- Ownership check is owner_id (text), not the legacy owner (uuid) column —
 -- current Supabase Storage populates owner_id and leaves owner null, so
 -- `owner = auth.uid()` silently never matches.
