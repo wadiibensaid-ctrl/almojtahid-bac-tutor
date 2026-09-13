@@ -132,6 +132,7 @@ function PastPapersTab({ t, lang, teacherId }) {
   const [filterSubject, setFilterSubject] = useState("");
   const [filterStream, setFilterStream] = useState("");
   const [filterPaperLang, setFilterPaperLang] = useState("");
+  const [filterTrack, setFilterTrack] = useState("");
   const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(async () => {
@@ -140,9 +141,10 @@ function PastPapersTab({ t, lang, teacherId }) {
       subject: filterSubject || undefined,
       stream: filterStream || undefined,
       lang: filterPaperLang || undefined,
+      track: filterTrack || undefined,
     });
     setPapers(list);
-  }, [filterLevel, filterSubject, filterStream, filterPaperLang]);
+  }, [filterLevel, filterSubject, filterStream, filterPaperLang, filterTrack]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -180,6 +182,11 @@ function PastPapersTab({ t, lang, teacherId }) {
           <option value="fr">{t.paperLangFr}</option>
           <option value="ar">{t.paperLangAr}</option>
         </select>
+        <select value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}>
+          <option value="">{t.allTracks}</option>
+          <option value="national">{t.trackNational}</option>
+          <option value="international">{t.trackInternational}</option>
+        </select>
       </div>
 
       {papers === null ? (
@@ -196,6 +203,7 @@ function PastPapersTab({ t, lang, teacherId }) {
               <div style={{ fontSize: 12.5, color: "#7a7266" }}>
                 {labelFor(p.level, lang)} · {p.lang === "ar" ? t.paperLangAr : t.paperLangFr}{p.title ? ` · ${p.title}` : ""}
                 {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
+                {p.track === "international" && <span className="pill pending" style={{ marginInlineStart: 8 }}>{t.trackInternational}</span>}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -219,6 +227,7 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
   const [year, setYear] = useState(new Date().getFullYear());
   const [session, setSession] = useState("normale");
   const [paperLang, setPaperLang] = useState("fr");
+  const [track, setTrack] = useState("national");
   const [title, setTitle] = useState("");
   const [paperFile, setPaperFile] = useState(null);
   const [correctionFile, setCorrectionFile] = useState(null);
@@ -230,7 +239,7 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
     if (!paperFile) return;
     setSaving(true); setError(false);
     try {
-      await uploadPastPaper({ teacherId, level, subject, stream, year, session, lang: paperLang, title: title.trim(), paperFile, correctionFile });
+      await uploadPastPaper({ teacherId, level, subject, stream, year, session, lang: paperLang, track, title: title.trim(), paperFile, correctionFile });
       onCreated();
     } catch {
       setError(true);
@@ -269,6 +278,13 @@ function PastPaperForm({ t, lang, teacherId, onCreated }) {
           <select value={paperLang} onChange={(e) => setPaperLang(e.target.value)}>
             <option value="fr">{t.paperLangFr}</option>
             <option value="ar">{t.paperLangAr}</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: "#7a7266", display: "block", marginBottom: 4 }}>{t.trackLabel}</label>
+          <select value={track} onChange={(e) => setTrack(e.target.value)}>
+            <option value="national">{t.trackNational}</option>
+            <option value="international">{t.trackInternational}</option>
           </select>
         </div>
         <div>

@@ -723,6 +723,15 @@ create table if not exists past_papers (
 
 alter table past_papers add column if not exists lang text not null default 'fr' check (lang in ('fr', 'ar'));
 
+-- 'international' = Morocco's separate "Mesalek Dawliya" (المسالك الدولية)
+-- track, a distinct program from the standard national Bac these papers
+-- otherwise all come from. Keeping every other field's meaning identical
+-- (year, session, stream, subject) and flagging only this one column
+-- means existing filters/UI keep working unchanged for national papers,
+-- while international ones stay clearly distinguishable rather than
+-- silently blending into the same "official" pool.
+alter table past_papers add column if not exists track text not null default 'national' check (track in ('national', 'international'));
+
 alter table past_papers enable row level security;
 
 drop policy if exists "authenticated users view past papers" on past_papers;
@@ -751,7 +760,7 @@ create policy "teachers delete their own uploaded papers"
 
 drop index if exists past_papers_filter_idx;
 create index if not exists past_papers_filter_idx
-  on past_papers (level, subject, stream, year, lang);
+  on past_papers (level, subject, stream, year, lang, track);
 
 -- Public bucket — see the comment above the table for why. Uploads are
 -- still gated to teachers via the storage.objects policy below; only

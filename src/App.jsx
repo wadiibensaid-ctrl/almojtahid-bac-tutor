@@ -578,6 +578,7 @@ function PastPapersView({ t, lang }) {
   const [filterSubject, setFilterSubject] = useState("");
   const [filterStream, setFilterStream] = useState("");
   const [filterPaperLang, setFilterPaperLang] = useState("");
+  const [filterTrack, setFilterTrack] = useState("");
 
   const load = useCallback(async () => {
     const list = await getPastPapers({
@@ -585,9 +586,10 @@ function PastPapersView({ t, lang }) {
       subject: filterSubject || undefined,
       stream: filterStream || undefined,
       lang: filterPaperLang || undefined,
+      track: filterTrack || undefined,
     });
     setPapers(list);
-  }, [filterLevel, filterSubject, filterStream, filterPaperLang]);
+  }, [filterLevel, filterSubject, filterStream, filterPaperLang, filterTrack]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -613,6 +615,11 @@ function PastPapersView({ t, lang }) {
           <option value="fr">{t.paperLangFr}</option>
           <option value="ar">{t.paperLangAr}</option>
         </select>
+        <select value={filterTrack} onChange={(e) => setFilterTrack(e.target.value)}>
+          <option value="">{t.allTracks}</option>
+          <option value="national">{t.trackNational}</option>
+          <option value="international">{t.trackInternational}</option>
+        </select>
       </div>
 
       {papers === null ? (
@@ -629,6 +636,7 @@ function PastPapersView({ t, lang }) {
               <div style={{ fontSize: 12.5, color: "#7a7266" }}>
                 {labelFor(p.level, lang)} · {p.lang === "ar" ? t.paperLangAr : t.paperLangFr}{p.title ? ` · ${p.title}` : ""}
                 {p.source === "official" && <span className="pill correct" style={{ marginInlineStart: 8 }}>{t.officialBadge}</span>}
+                {p.track === "international" && <span className="pill pending" style={{ marginInlineStart: 8 }}>{t.trackInternational}</span>}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
