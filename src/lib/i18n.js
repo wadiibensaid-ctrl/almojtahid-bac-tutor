@@ -141,7 +141,7 @@ export const T = {
     pendingReviewHint: "Ta copie a été corrigée par l'IA. L'enseignant doit valider la note avant que tu puisses la voir.",
     whiteboardBtn: "Tableau blanc",
     // Past national exam papers
-    pastPapersTab: "Épreuves nationales",
+    pastPapersTab: "Épreuves Bac Marocain",
     uploadPastPaper: "Ajouter une épreuve",
     allLevels: "Tous les niveaux",
     allSubjects: "Toutes les matières",
@@ -307,7 +307,7 @@ export const T = {
     pendingReviewHint: "تم تصحيح إجابتك بواسطة الذكاء الاصطناعي. يجب على الأستاذ التحقق من النقطة قبل أن تتمكن من رؤيتها.",
     whiteboardBtn: "السبورة البيضاء",
     // Past national exam papers
-    pastPapersTab: "الامتحانات الوطنية",
+    pastPapersTab: "امتحانات الباكالوريا المغربية",
     uploadPastPaper: "إضافة امتحان",
     allLevels: "كل المستويات",
     allSubjects: "كل المواد",
