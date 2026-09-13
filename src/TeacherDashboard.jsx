@@ -10,6 +10,8 @@ import {
   uploadPastPaper, getPastPapers, deletePastPaper,
 } from "./lib/teacher";
 import { JITSI_DOMAIN, loadJitsiScript } from "./lib/jitsi";
+import PrivacyPolicy from "./PrivacyPolicy";
+import DeleteAccountButton from "./DeleteAccountButton";
 
 export default function TeacherDashboard({ profile }) {
   const { userId, email, signOut } = useContext(AuthContext);
@@ -19,7 +21,7 @@ export default function TeacherDashboard({ profile }) {
   const [newClassName, setNewClassName] = useState("");
   const [creatingClass, setCreatingClass] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [view, setView] = useState("classes"); // "classes" | "pastPapers"
+  const [view, setView] = useState("classes"); // "classes" | "pastPapers" | "account"
   const t = T[lang];
 
   const refreshClasses = useCallback(async () => {
@@ -83,12 +85,17 @@ export default function TeacherDashboard({ profile }) {
             <button className="sidebar-subject" onClick={() => { setView("pastPapers"); setSidebarOpen(false); }}>
               <span>{t.pastPapersTab}</span>
             </button>
+            <button className="sidebar-subject" onClick={() => { setView("account"); setSidebarOpen(false); }}>
+              <span>{t.tabAccount}</span>
+            </button>
           </div>
         </div>
 
         <div className="dashboard-content">
           {view === "pastPapers" ? (
             <PastPapersTab t={t} lang={lang} teacherId={userId} />
+          ) : view === "account" ? (
+            <TeacherAccountView t={t} lang={lang} />
           ) : !selectedClass ? (
             <div style={{ textAlign: "center", padding: "80px 20px", color: "#9c9184" }}>
               <Star8 size={40} color="var(--line)" style={{ margin: "0 auto 12px" }} />
@@ -105,6 +112,20 @@ export default function TeacherDashboard({ profile }) {
 
 /** Not class-scoped — every teacher and student sees the same shared
  *  library of past papers, official or teacher-uploaded alike. */
+function TeacherAccountView({ t, lang }) {
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  return (
+    <div>
+      <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 700, color: "var(--ink)", margin: "0 0 22px" }}>{t.tabAccount}</h1>
+      {showPrivacy && <PrivacyPolicy lang={lang} onClose={() => setShowPrivacy(false)} />}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn" onClick={() => setShowPrivacy(true)}>{t.viewPrivacyPolicy}</button>
+        <DeleteAccountButton t={t} />
+      </div>
+    </div>
+  );
+}
+
 function PastPapersTab({ t, lang, teacherId }) {
   const [papers, setPapers] = useState(null);
   const [filterLevel, setFilterLevel] = useState("");

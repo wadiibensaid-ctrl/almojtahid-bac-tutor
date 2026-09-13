@@ -10,6 +10,8 @@ import { generateExercise, gradeAnswer, generateFlashcards } from "./lib/ai";
 import { kvGet, kvSet, kvList } from "./lib/storage";
 import { getProfile, getLinkedParents, revokeParent } from "./lib/profile";
 import TeacherDashboard from "./TeacherDashboard";
+import PrivacyPolicy from "./PrivacyPolicy";
+import DeleteAccountButton from "./DeleteAccountButton";
 import {
   joinClassByCode, getMyClassesAsStudent, getAssignmentsForStudent,
   getMySubmission, createSubmissionRow, submitAssignmentAnswer,
@@ -159,7 +161,7 @@ function PlatformShell({ profile }) {
             </div>
           )}
 
-          {!chapter && tab === "account" && <AccountTab t={t} profile={profile} />}
+          {!chapter && tab === "account" && <AccountTab t={t} lang={lang} profile={profile} />}
           {!chapter && tab === "assignments" && <AssignmentsTab t={t} lang={lang} />}
           {!chapter && tab === "pastPapers" && <PastPapersView t={t} lang={lang} />}
 
@@ -179,7 +181,7 @@ function PlatformShell({ profile }) {
               {tab === "practice" && <PracticeTab t={t} lang={lang} level={level} subject={subject} chapter={chapter.title} />}
               {tab === "flashcards" && <FlashcardsTab t={t} lang={lang} level={level} subject={subject} chapter={chapter.title} seed={seed} />}
               {tab === "progress" && <ProgressTab t={t} lang={lang} level={level} subject={subject} />}
-              {tab === "account" && <AccountTab t={t} profile={profile} />}
+              {tab === "account" && <AccountTab t={t} lang={lang} profile={profile} />}
             </>
           )}
         </div>
@@ -856,8 +858,9 @@ function AssignmentItem({ t, lang, assignment, userId, token, isOpen, onToggle }
   );
 }
 
-function AccountTab({ t, profile }) {
+function AccountTab({ t, lang, profile }) {
   const [parents, setParents] = useState(null);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   const refresh = useCallback(async () => {
     const list = await getLinkedParents();
@@ -896,6 +899,13 @@ function AccountTab({ t, profile }) {
           </div>
         ))
       )}
+
+      <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17, margin: "24px 0 14px", color: "var(--ink)" }}>{t.privacyAndData}</div>
+      {showPrivacy && <PrivacyPolicy lang={lang} onClose={() => setShowPrivacy(false)} />}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn" onClick={() => setShowPrivacy(true)}>{t.viewPrivacyPolicy}</button>
+        <DeleteAccountButton t={t} />
+      </div>
     </div>
   );
 }

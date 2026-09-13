@@ -6,6 +6,8 @@ import { diffBand } from "./lib/helpers";
 import { kvList, kvGet } from "./lib/storage";
 import { getLinkedChildren, linkChildByCode } from "./lib/profile";
 import { labelFor } from "./lib/curriculum";
+import PrivacyPolicy from "./PrivacyPolicy";
+import DeleteAccountButton from "./DeleteAccountButton";
 
 export default function ParentDashboard({ profile }) {
   const { email, signOut } = useContext(AuthContext);
@@ -15,6 +17,7 @@ export default function ParentDashboard({ profile }) {
   const [code, setCode] = useState("");
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState(null);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const t = T[lang];
 
   const refreshChildren = useCallback(async () => {
@@ -84,6 +87,13 @@ export default function ParentDashboard({ profile }) {
             {children.length > 0 && selectedId && <ChildProgress t={t} lang={lang} childId={selectedId} />}
           </>
         )}
+
+        <div style={{ fontFamily: "'Fraunces', serif", fontWeight: 600, fontSize: 17, margin: "24px 0 14px", color: "var(--ink)" }}>{t.privacyAndData}</div>
+        {showPrivacy && <PrivacyPolicy lang={lang} onClose={() => setShowPrivacy(false)} />}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn" onClick={() => setShowPrivacy(true)}>{t.viewPrivacyPolicy}</button>
+          <DeleteAccountButton t={t} />
+        </div>
       </div>
     </Frame>
   );
