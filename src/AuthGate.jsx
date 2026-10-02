@@ -44,9 +44,17 @@ export default function AuthGate({ children }) {
             </p>
           ) : (
             <>
+              <label htmlFor="email" style={labelStyle}>Ton adresse email</label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 required
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ton.email@exemple.com"
@@ -62,7 +70,9 @@ export default function AuthGate({ children }) {
                 />
                 <span>
                   J'ai lu et j'accepte la{" "}
-                  <a href="#" onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} style={{ color: "#B5533C" }}>
+                  {/* Real URL so ad platforms and crawlers can reach the policy,
+                      and so open-in-new-tab works; the click opens the modal. */}
+                  <a href="/confidentialite" onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} style={{ color: "#B5533C" }}>
                     politique de confidentialité
                   </a>
                   . Si j'ai moins de 18 ans, je confirme avoir l'autorisation de mon parent ou tuteur légal pour créer ce compte.
@@ -105,6 +115,12 @@ const cardStyle = {
   borderRadius: 16,
   padding: 32,
   width: 340,
+};
+const labelStyle = {
+  display: "block",
+  fontSize: 12.5,
+  color: "#6b6459",
+  marginBottom: 6,
 };
 const inputStyle = {
   width: "100%",
