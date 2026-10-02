@@ -54,7 +54,12 @@ export const GLOBAL_CSS = `
      sidebar next to content, so it becomes an off-canvas panel toggled by
      .mobile-menu-btn instead of always being visible. */
   .dashboard-shell { display:flex; flex:1; max-width:1200px; margin:0 auto; width:100%; position:relative; }
-  .dashboard-sidebar { flex-shrink:0; border-inline-end:1.5px solid var(--line); padding:18px; background:#EDE3CB44; overflow-y:auto; }
+  /* The width matters: the children (select, .sidebar-subject,
+     .sidebar-chapter) are all width:100%, so without a definite width here
+     the flex item sizes to max-content and, being flex-shrink:0, never
+     shrinks back — it blew out to ~2100px and pushed .dashboard-content off
+     the right edge of the page. The mobile rule below overrides it. */
+  .dashboard-sidebar { width:260px; flex-shrink:0; border-inline-end:1.5px solid var(--line); padding:18px; background:#EDE3CB44; overflow-y:auto; }
   .dashboard-content { flex:1; padding:24px 28px; min-width:0; }
   .mobile-menu-btn { display:none; }
   .sidebar-backdrop { display:none; }
