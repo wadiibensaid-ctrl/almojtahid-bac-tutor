@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "./lib/supabaseClient";
 import { AuthContext } from "./AuthContext";
 import PrivacyPolicy from "./PrivacyPolicy";
+import { getSource } from "./lib/source";
 
 export default function AuthGate({ children }) {
   const [session, setSession] = useState(undefined); // undefined = still checking
@@ -26,7 +27,11 @@ export default function AuthGate({ children }) {
       e.preventDefault();
       if (!consent) return;
       setError(null);
-      const { error: err } = await supabase.auth.signInWithOtp({ email });
+      const src = getSource();
+      const { error: err } = await supabase.auth.signInWithOtp({
+        email,
+        ...(src && { options: { data: { src } } }),
+      });
       if (err) setError(err.message);
       else setSent(true);
     };
